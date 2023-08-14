@@ -1,15 +1,14 @@
 package pw.avvero.ggt
 
 import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.MappingBuilder
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
-import com.github.tomakehurst.wiremock.verification.LoggedRequest
 import org.skyscreamer.jsonassert.JSONAssert
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.web.client.RestTemplate
 import spock.lang.Shared
 import spock.lang.Specification
+import spock.lang.Unroll
 
 import static com.github.tomakehurst.wiremock.client.WireMock.*
 import static org.springframework.http.HttpStatus.OK
@@ -34,12 +33,11 @@ class ProcessingTests extends Specification {
         telegramStub.start()
     }
 
-    def "Bot answers gg on gg"() {
+    @Unroll
+    def "Bot answers #response on #message"() {
         setup:
-        StubMapping sendMessageMapping = telegramStub.stubFor(
-                post(urlPathMatching("/bottoken/sendMessage"))
-                        .willReturn(okJson("""{}"""))
-        )
+        StubMapping sendMessageMapping = telegramStub.stubFor(post(urlPathMatching("/bottoken/sendMessage"))
+                .willReturn(okJson("""{}""")))
         def sendMessageRequestCaptor = new WiredRequestCaptor(telegramStub, sendMessageMapping)
         when:
         def request = """{
@@ -58,18 +56,21 @@ class ProcessingTests extends Specification {
               "type": "supergroup"
             },
             "date": 1660400417,
-            "text": "gg"
+            "text": "$message"
           }
         }""" as String
-        def response = restTemplate.postForEntity("$botHost/main", request, Map.class)
+        def postResponse = restTemplate.postForEntity("$botHost/main", request, Map.class)
         then:
-        response.statusCode == OK
+        postResponse.statusCode == OK
         and:
         JSONAssert.assertEquals("""{
           "chat_id": "$chat1.id",
           "reply_to_message_id": "50713",
-          "text": "gg"
+          "text": "$response"
         }""", sendMessageRequestCaptor.bodyString, false) // actual can contain more fields than expected
+        where:
+        message | response
+        "gg"    | "gg"
     }
 
 }
