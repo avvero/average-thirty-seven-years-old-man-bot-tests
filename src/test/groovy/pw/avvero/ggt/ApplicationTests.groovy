@@ -8,6 +8,7 @@ class ApplicationTests extends Specification {
 
     def "Context loads"(){
         expect:
+        org.slf4j.helpers.NOPLoggerFactory
         1 == 1
     }
 
