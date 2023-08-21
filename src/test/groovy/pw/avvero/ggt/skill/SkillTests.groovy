@@ -1,4 +1,4 @@
-package pw.avvero.ggt
+package pw.avvero.ggt.skill
 
 import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
@@ -8,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
 import org.springframework.test.context.ActiveProfiles
 import org.springframework.web.client.RestTemplate
+import pw.avvero.ggt.SequenceGenerator
+import pw.avvero.ggt.TelegramBook
+import pw.avvero.ggt.WiredRequestCaptor
 import spock.lang.Shared
 import spock.lang.Specification
 import spock.lang.Unroll
@@ -17,7 +20,7 @@ import static org.springframework.http.HttpStatus.OK
 
 @SpringBootTest
 @ActiveProfiles(profiles = "test")
-class ProcessingTests extends Specification {
+class SkillTests extends Specification {
 
     @Autowired
     RestTemplate restTemplate
@@ -43,9 +46,10 @@ class ProcessingTests extends Specification {
                 .willReturn(okJson("""{}""")))
         def sendMessageRequestCaptor = new WiredRequestCaptor(telegramStub, sendMessageMapping)
         when:
-        def request = TelegramCommandBook.sendMessage("""{
+        def sequence = SequenceGenerator.getNext(["messageId"])
+        def request = TelegramBook.sendMessage("""{
           "message": {
-            "message_id": 50713,
+            "message_id": $sequence.messageId,
             "from": {
               "id": $user1.id,
               "username": "$user1.username"
@@ -63,7 +67,7 @@ class ProcessingTests extends Specification {
         and:
         JSONAssert.assertEquals("""{
           "chat_id": "$chat1.id",
-          "reply_to_message_id": "50713",
+          "reply_to_message_id": "$sequence.messageId",
           "text": "$response"
         }""", sendMessageRequestCaptor.bodyString, false) // actual can contain more fields than expected
         where:

@@ -1,6 +1,6 @@
 package pw.avvero.ggt
 
-class TelegramCommandBook {
+class TelegramBook {
 
     static def sendMessage(String patch) {
         def template = """{
