@@ -4,7 +4,9 @@ import com.github.tomakehurst.wiremock.WireMockServer
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration
 import com.github.tomakehurst.wiremock.stubbing.StubMapping
 import org.skyscreamer.jsonassert.JSONAssert
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.boot.test.context.SpringBootTest
+import org.springframework.test.context.ActiveProfiles
 import org.springframework.web.client.RestTemplate
 import spock.lang.Shared
 import spock.lang.Specification
@@ -14,10 +16,11 @@ import static com.github.tomakehurst.wiremock.client.WireMock.*
 import static org.springframework.http.HttpStatus.OK
 
 @SpringBootTest
+@ActiveProfiles(profiles = "test")
 class ProcessingTests extends Specification {
 
-    @Shared
-    RestTemplate restTemplate = new RestTemplate()
+    @Autowired
+    RestTemplate restTemplate
     @Shared
     WireMockServer telegramStub
 
@@ -40,25 +43,20 @@ class ProcessingTests extends Specification {
                 .willReturn(okJson("""{}""")))
         def sendMessageRequestCaptor = new WiredRequestCaptor(telegramStub, sendMessageMapping)
         when:
-        def request = """{
-          "update_id": 1000,
+        def request = TelegramCommandBook.sendMessage("""{
           "message": {
             "message_id": 50713,
             "from": {
               "id": $user1.id,
-              "is_bot": false,
-              "username": "$user1.username",
-              "language_code": "ru"
+              "username": "$user1.username"
             },
             "chat": {
               "id": "$chat1.id",
-              "title": "$chat1.title",
-              "type": "supergroup"
+              "title": "$chat1.title"
             },
-            "date": 1660400417,
             "text": "$message"
           }
-        }""" as String
+        }""")
         def postResponse = restTemplate.postForEntity("$botHost/main", request, Map.class)
         then:
         postResponse.statusCode == OK
@@ -72,5 +70,4 @@ class ProcessingTests extends Specification {
         message | response
         "gg"    | "gg"
     }
-
 }

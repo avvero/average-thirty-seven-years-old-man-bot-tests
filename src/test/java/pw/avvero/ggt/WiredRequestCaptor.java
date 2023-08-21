@@ -5,9 +5,9 @@ import com.github.tomakehurst.wiremock.http.HttpHeader;
 import com.github.tomakehurst.wiremock.stubbing.StubMapping;
 import com.github.tomakehurst.wiremock.verification.LoggedRequest;
 import groovy.json.JsonSlurper;
+import org.awaitility.Awaitility;
 import org.springframework.http.HttpHeaders;
 import org.springframework.util.Assert;
-import org.testcontainers.shaded.org.awaitility.Awaitility;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
