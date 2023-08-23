@@ -5,7 +5,6 @@ class TelegramBook {
     static def sendMessage(String patch) {
         def template = """{
           "message": {
-            "message_id": 50713,
             "from": {
               "id": "#REQUIRED",
               "is_bot": false,
