@@ -183,6 +183,7 @@ class SkillTests extends Specification {
           }
         }""")
         def postResponse = restTemplate.postForEntity("$botHost/main", request, Map.class)
+        Thread.sleep(200)
         then:
         postResponse.statusCode == OK
         and:
@@ -202,6 +203,7 @@ class SkillTests extends Specification {
           }
         }""")
         def postResponse2 = restTemplate.postForEntity("$botHost/main", request2, Map.class)
+        Thread.sleep(200)
         then:
         postResponse2.statusCode == OK
         and:
@@ -224,12 +226,14 @@ class SkillTests extends Specification {
         then:
         postResponse3.statusCode == OK
         and:
+        Thread.sleep(1000)
+        and:
         openAiMessageMappingCaptor.times == 1
         JSONAssert.assertEquals("""{
-          "model": "gpt-3.5-turbo",
+          "model": "gpt-3.5-turbo-16k",
           "messages": [{
             "role": "user", 
-            "content": "Сделай краткий пересказ переписки, представленной ниже:\\nuser1:раз\\nuser2:два"
+            "content": "Сделай на русском пересказ переписки. Пересказ должен быть информативным, количество слов 200-300. Сделай выводы по основным моментам обсуждений. Переписка представлена ниже:\\nuser1: раз\\nuser2: два\\nuser1: дайджест"
           }]
         }""", openAiMessageMappingCaptor.bodyString, false) // actual can contain more fields than expected
         and:

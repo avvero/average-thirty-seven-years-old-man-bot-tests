@@ -10,6 +10,9 @@ import org.springframework.util.StreamUtils;
 
 import java.io.IOException;
 import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+
+import static java.nio.charset.StandardCharsets.UTF_16;
 
 @Slf4j
 @Component
@@ -32,7 +35,7 @@ public class LoggingInterceptor implements ClientHttpRequestInterceptor {
             log.debug("URI: {}", request.getURI());
             log.debug("Method: {}", request.getMethod());
             log.debug("Headers: {}", request.getHeaders());
-            log.debug("Request body: {}", new String(body, "UTF-8"));
+            log.debug("Request body: {}", new String(body));
             log.debug("===log request end===");
         }
     }
