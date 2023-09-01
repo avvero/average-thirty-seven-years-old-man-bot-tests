@@ -31,6 +31,7 @@ class SkillTests extends Specification {
 
     def botHost = "http://localhost:8080"
     def user1 = [id: "10001", username: "user1"]
+    def user2 = [id: "10002", username: "user2"]
     def chat1 = [id: "0", title: "Guild"]
 
     def setupSpec() {
@@ -132,6 +133,111 @@ class SkillTests extends Specification {
           "chat_id": "$chat1.id",
           "reply_to_message_id": "$userMessage1.messageId",
           "text": "Привет"
+        }""", botMessageMappingCaptor.bodyString, false) // actual can contain more fields than expected
+        cleanup:
+        telegramStub.resetAll()
+        openAiStub.resetAll()
+    }
+
+    @Unroll
+    def "Bot answers on digest"() {
+        setup:
+        def botMessage = SequenceGenerator.getNext(["messageId"])
+        StubMapping botMessageMapping = telegramStub.stubFor(post(urlPathMatching("/bottoken/sendMessage"))
+                .willReturn(okJson("""
+        {
+            "ok": true,
+            "result": {
+                "message_id": $botMessage.messageId
+            }
+        }""")))
+        def botMessageMappingCaptor = new WiredRequestCaptor(telegramStub, botMessageMapping)
+
+        StubMapping openAiMessageMapping = openAiStub.stubFor(post(urlPathMatching("/v1/chat/completions"))
+                .willReturn(okJson("""
+        {
+          "choices": [
+            {
+              "message": {
+                "role": "assistant",
+                "content": "Вот краткое содержание переписки"
+              }
+            }
+          ]
+        }""")))
+        def openAiMessageMappingCaptor = new WiredRequestCaptor(openAiStub, openAiMessageMapping)
+        when:
+        def userMessage1 = SequenceGenerator.getNext(["messageId"])
+        def request = TelegramBook.sendMessage("""{
+          "message": {
+            "message_id": $userMessage1.messageId,
+            "from": {
+              "id": $user1.id,
+              "username": "$user1.username"
+            },
+            "chat": {
+              "id": "$chat1.id",
+              "title": "$chat1.title"
+            },
+            "text": "раз"
+          }
+        }""")
+        def postResponse = restTemplate.postForEntity("$botHost/main", request, Map.class)
+        then:
+        postResponse.statusCode == OK
+        and:
+        def userMessage2 = SequenceGenerator.getNext(["messageId"])
+        def request2 = TelegramBook.sendMessage("""{
+          "message": {
+            "message_id": $userMessage2.messageId,
+            "from": {
+              "id": $user2.id,
+              "username": "$user2.username"
+            },
+            "chat": {
+              "id": "$chat1.id",
+              "title": "$chat1.title"
+            },
+            "text": "два"
+          }
+        }""")
+        def postResponse2 = restTemplate.postForEntity("$botHost/main", request2, Map.class)
+        then:
+        postResponse2.statusCode == OK
+        and:
+        def userMessage3 = SequenceGenerator.getNext(["messageId"])
+        def request3 = TelegramBook.sendMessage("""{
+          "message": {
+            "message_id": $userMessage3.messageId,
+            "from": {
+              "id": $user1.id,
+              "username": "$user1.username"
+            },
+            "chat": {
+              "id": "$chat1.id",
+              "title": "$chat1.title"
+            },
+            "text": "дайджест"
+          }
+        }""")
+        def postResponse3 = restTemplate.postForEntity("$botHost/main", request3, Map.class)
+        then:
+        postResponse3.statusCode == OK
+        and:
+        openAiMessageMappingCaptor.times == 1
+        JSONAssert.assertEquals("""{
+          "model": "gpt-3.5-turbo",
+          "messages": [{
+            "role": "user", 
+            "content": "Сделай краткий пересказ переписки, представленной ниже:\\nuser1:раз\\nuser2:два"
+          }]
+        }""", openAiMessageMappingCaptor.bodyString, false) // actual can contain more fields than expected
+        and:
+        botMessageMappingCaptor.times == 1
+        JSONAssert.assertEquals("""{
+          "chat_id": "$chat1.id",
+          "reply_to_message_id": "$userMessage1.messageId",
+          "text": "Вот краткое содержание переписки"
         }""", botMessageMappingCaptor.bodyString, false) // actual can contain more fields than expected
         cleanup:
         telegramStub.resetAll()
